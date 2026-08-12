@@ -111,6 +111,7 @@ th { position: sticky; top: 0; z-index: 1; background: #1b2933; color: var(--mut
 td:first-child { background: var(--surface); color: #dbe4e8; }
 tr:hover td { background: #1c2b35; }
 .strong-cell { color: #fff; font-weight: 700; }
+.accumulated-cell { color: var(--teal); font-variant-numeric: tabular-nums; font-weight: 700; }
 .table-note { display: block; padding-top: 12px; }
 .table-actions label { color: var(--muted); font-size: 11px; display: flex; align-items: center; gap: 6px; }
 .table-actions input, .toggle input { accent-color: var(--orange); }
