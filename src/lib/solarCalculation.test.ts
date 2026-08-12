@@ -23,6 +23,7 @@ describe('solar calculation invariants', () => {
     const integrated = result.points.reduce((sum, point) => sum + point.totalIdeal * 5 / 60, 0)
     expect(result.energy.totalIdeal).toBeCloseTo(integrated, 8)
     expect(result.points[120].totalIdeal).toBeCloseTo(result.points[120].roof1Ideal + result.points[120].roof2Ideal, 8)
+    expect(result.peak.ideal).toBeLessThanOrEqual(20)
   })
 
   it('scales approximately linearly with installed power', () => {
