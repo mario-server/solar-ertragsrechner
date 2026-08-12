@@ -27,8 +27,16 @@ describe('solar calculation invariants', () => {
   })
 
   it('scales approximately linearly with installed power', () => {
-    const oneSide = calculateDay({ ...DEFAULT_SETTINGS, roof2: { ...DEFAULT_SETTINGS.roof2, active: false } }, '2026-08-12')
-    const doubled = calculateDay({ ...DEFAULT_SETTINGS, roof2: { ...DEFAULT_SETTINGS.roof1 } }, '2026-08-12')
+    const oneSide = calculateDay({ ...DEFAULT_SETTINGS, roof2: { ...DEFAULT_SETTINGS.roof2, active: false }, roofSides: [{ ...DEFAULT_SETTINGS.roof1 }, { ...DEFAULT_SETTINGS.roof2, active: false }] }, '2026-08-12')
+    const doubled = calculateDay({ ...DEFAULT_SETTINGS, roof2: { ...DEFAULT_SETTINGS.roof1 }, roofSides: [{ ...DEFAULT_SETTINGS.roof1 }, { ...DEFAULT_SETTINGS.roof1, id: 'roof-2' }] }, '2026-08-12')
     expect(doubled.energy.totalIdeal).toBeCloseTo(oneSide.energy.totalIdeal * 2, 5)
+  })
+
+  it('includes additional active roof surfaces in the total', () => {
+    const one = calculateDay(DEFAULT_SETTINGS, '2026-08-12')
+    const three = { ...DEFAULT_SETTINGS, roofSides: [...DEFAULT_SETTINGS.roofSides, { id: 'roof-3', name: 'Garage', active: true, powerKwp: 5, azimuth: 180, tilt: 20, systemLoss: 14 }] }
+    const result = calculateDay(three, '2026-08-12')
+    expect(result.sideEnergy).toHaveLength(3)
+    expect(result.energy.totalIdeal).toBeGreaterThan(one.energy.totalIdeal)
   })
 })

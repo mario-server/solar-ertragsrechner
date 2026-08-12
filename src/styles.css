@@ -131,6 +131,25 @@ tr:hover td { background: #1c2b35; }
 .month-bar b { background: var(--orange); opacity: .32; }
 .settings-layout { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(280px, .75fr); gap: 18px; align-items: start; }
 .settings-panel { margin-bottom: 18px; }
+.surface-editor { border-top: 1px solid var(--line); padding: 18px 0 4px; }
+.surface-editor:first-of-type { border-top: 0; padding-top: 0; }
+.surface-heading { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-bottom: 14px; }
+.surface-heading > div { display: flex; align-items: center; gap: 10px; }
+.surface-index { color: var(--orange); font-size: 11px; font-weight: 800; letter-spacing: .08em; }
+.surface-name { min-width: 190px; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; padding: 5px 2px; background: transparent; font-weight: 700; }
+.surface-name:focus { border-color: var(--orange); }
+.remove-button { border: 1px solid var(--line); background: transparent; color: var(--muted); border-radius: 3px; width: 28px; height: 28px; font-size: 18px; line-height: 1; }
+.remove-button:hover { border-color: var(--red); color: var(--red); }
+.location-search { position: relative; margin-bottom: 15px; }
+.location-search .field { margin-bottom: 0; }
+.search-status { display: block; color: var(--orange); font-size: 10px; margin-top: 6px; }
+.suggestions { position: absolute; z-index: 3; top: 61px; left: 0; right: 0; border: 1px solid var(--line); background: #1b2933; box-shadow: 0 12px 28px rgba(0,0,0,.28); }
+.suggestions button { display: block; width: 100%; border: 0; border-bottom: 1px solid #2a3943; background: transparent; color: #e9eff0; text-align: left; padding: 11px 13px; }
+.suggestions button:last-child { border-bottom: 0; }
+.suggestions button:hover { background: #243641; }
+.suggestions strong, .suggestions span { display: block; }
+.suggestions strong { font-size: 12px; }
+.suggestions span { color: var(--muted); font-size: 10px; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .field-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
 .field { display: flex; flex-direction: column; gap: 6px; color: var(--muted); font-size: 11px; }
 .field.wide { grid-column: span 2; }
@@ -156,5 +175,5 @@ tr:hover td { background: #1c2b35; }
 .assumption strong { font-size: 11px; color: var(--teal); }.assumption span { color: var(--muted); font-size: 11px; line-height: 1.4; }
 footer { max-width: 1440px; margin: -45px auto 0; padding: 0 34px 25px; }
 @media (max-width: 1050px) { .metric-grid { grid-template-columns: repeat(3, 1fr); }.overview-grid, .settings-layout { grid-template-columns: 1fr; }.method-card { position: static; }.roof-badge { flex-wrap: wrap; }.roof-badge em { width: 100%; margin-left: 17px; }.metric-grid .metric:last-child { grid-column: span 1; } }
-@media (max-width: 700px) { .topbar { height: auto; min-height: 67px; padding: 11px 16px 0; gap: 15px; flex-wrap: wrap; }.brand { min-width: 150px; }.brand small { display: none; }.data-status { margin-left: auto; }.topbar nav { order: 3; width: 100%; height: 37px; }.topbar nav button { flex: 1; padding: 0 5px; font-size: 11px; }.main-shell { padding: 28px 15px 65px; }.page-heading, .page-heading.compact { align-items: flex-start; flex-direction: column; gap: 15px; }.page-heading .primary { width: 100%; }.roof-strip { display: grid; grid-template-columns: 1fr 1fr; }.roof-badge, .roof-total { border-right: 1px solid var(--line); padding: 12px; font-size: 10px; }.roof-total { grid-column: span 2; margin-left: 0; justify-content: space-between; border-top: 1px solid var(--line); }.metric-grid, .day-metrics { grid-template-columns: repeat(2, 1fr); }.metric { min-height: 108px; padding: 13px; }.metric strong { font-size: 17px; }.overview-grid { gap: 12px; }.panel { padding: 16px; }.today-main { gap: 22px; }.today-main strong { font-size: 21px; }.comparison-grid { grid-template-columns: 1fr; gap: 16px; }.comparison-grid > div { padding: 5px 12px; }.date-control, .year-control { width: 100%; }.date-control input { flex: 1; min-width: 0; }.table-head { align-items: flex-start; flex-direction: column; }.table-actions { width: 100%; justify-content: space-between; }.chart-toggles { justify-content: start; }.month-bars { gap: 4px; }.month-value { font-size: 8px; }.settings-panel .section-title { margin-bottom: 15px; }.field-grid { gap: 12px; }.field { font-size: 10px; } }
+@media (max-width: 700px) { .topbar { height: auto; min-height: 67px; padding: 11px 16px 0; gap: 15px; flex-wrap: wrap; }.brand { min-width: 150px; }.brand small { display: none; }.data-status { margin-left: auto; }.topbar nav { order: 3; width: 100%; height: 37px; }.topbar nav button { flex: 1; padding: 0 5px; font-size: 11px; }.main-shell { padding: 28px 15px 65px; }.page-heading, .page-heading.compact { align-items: flex-start; flex-direction: column; gap: 15px; }.page-heading .primary { width: 100%; }.roof-strip { display: grid; grid-template-columns: 1fr 1fr; }.roof-badge, .roof-total { border-right: 1px solid var(--line); padding: 12px; font-size: 10px; }.roof-total { grid-column: span 2; margin-left: 0; justify-content: space-between; border-top: 1px solid var(--line); }.metric-grid, .day-metrics { grid-template-columns: repeat(2, 1fr); }.metric { min-height: 108px; padding: 13px; }.metric strong { font-size: 17px; }.overview-grid { gap: 12px; }.panel { padding: 16px; }.today-main { gap: 22px; }.today-main strong { font-size: 21px; }.comparison-grid { grid-template-columns: 1fr; gap: 16px; }.comparison-grid > div { padding: 5px 12px; }.date-control, .year-control { width: 100%; }.date-control input { flex: 1; min-width: 0; }.table-head { align-items: flex-start; flex-direction: column; }.table-actions { width: 100%; justify-content: space-between; }.chart-toggles { justify-content: start; }.month-bars { gap: 4px; }.month-value { font-size: 8px; }.settings-panel .section-title { margin-bottom: 15px; }.field-grid { gap: 12px; }.field { font-size: 10px; }.surface-heading { align-items: flex-start; }.surface-heading > div:last-child { gap: 5px; }.surface-name { min-width: 130px; max-width: 170px; } }
 @media (max-width: 420px) { .metric-grid, .day-metrics { grid-template-columns: 1fr 1fr; gap: 7px; }.metric strong { font-size: 15px; }.metric span, .metric small { font-size: 10px; }.roof-badge b { font-size: 10px; }.section-title { gap: 8px; } }

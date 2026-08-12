@@ -5,3 +5,6 @@ dist
 upload.sh
 DEPLOYMENT-SECRETS.md
 .DS_Store
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts

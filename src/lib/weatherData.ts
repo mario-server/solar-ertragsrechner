@@ -1,7 +1,7 @@
-import type { Settings } from '../types'
+import { configuredRoofSides, type Settings } from '../types'
 import { MONTHLY_FALLBACK } from './pvCalculation'
 
-export type WeatherData = { factors: { roof1: number[]; roof2: number[] }; source: 'PVGIS' | 'fallback'; loadedAt: string; note: string }
+export type WeatherData = { factors: { factors: number[][]; roof1?: number[]; roof2?: number[] }; source: 'PVGIS' | 'fallback'; loadedAt: string; note: string }
 
 const CACHE_PREFIX = 'solar-pvgis-v1:'
 
@@ -26,17 +26,23 @@ function deriveFactors(monthly: number[]) {
   return normalized.map((value, i) => Math.min(1.15, Math.max(0.05, value / (MONTHLY_FALLBACK[i] / fallbackTotal) * 0.86)))
 }
 
+function normalizeCachedWeather(value: WeatherData) {
+  if (value.factors?.factors?.length) return value
+  const legacy = [value.factors?.roof1, value.factors?.roof2].filter((item): item is number[] => Array.isArray(item))
+  return { ...value, factors: { ...value.factors, factors: legacy } }
+}
+
 export async function loadWeatherData(settings: Settings, force = false): Promise<WeatherData> {
-  const roof2Azimuth = settings.roof2Opposite ? (settings.roof1.azimuth + 180) % 360 : settings.roof2.azimuth
-  const roof2Tilt = settings.roof2TiltLinked ? settings.roof1.tilt : settings.roof2.tilt
-  const key = `${CACHE_PREFIX}${settings.location}:${settings.latitude}:${settings.longitude}:${settings.roof1.azimuth}:${settings.roof1.tilt}:${roof2Azimuth}:${roof2Tilt}`
-  if (!force) { const cached = localStorage.getItem(key); if (cached) return JSON.parse(cached) as WeatherData }
+  const sides = configuredRoofSides(settings)
+  const key = `${CACHE_PREFIX}${settings.location}:${settings.latitude}:${settings.longitude}:${sides.map((side) => `${side.azimuth}:${side.tilt}:${side.powerKwp}`).join('|')}`
+  if (!force) { const cached = localStorage.getItem(key); if (cached) return normalizeCachedWeather(JSON.parse(cached) as WeatherData) }
   try {
-    const [one, two] = await Promise.all([fetchSide(settings, settings.roof1.azimuth, settings.roof1.tilt), fetchSide(settings, roof2Azimuth, roof2Tilt)])
-    const data: WeatherData = { factors: { roof1: deriveFactors(one), roof2: deriveFactors(two) }, source: 'PVGIS', loadedAt: new Date().toISOString(), note: 'Klimatischer Erwartungswert aus PVGIS-Monatsdaten. Tageswerte sind innerhalb des Monats modelliert.' }
+    const monthly = await Promise.all(sides.map((side) => side.active ? fetchSide(settings, side.azimuth, side.tilt) : Promise.resolve(MONTHLY_FALLBACK)))
+    const factors = monthly.map(deriveFactors)
+    const data: WeatherData = { factors: { factors, roof1: factors[0], roof2: factors[1] }, source: 'PVGIS', loadedAt: new Date().toISOString(), note: 'Klimatischer Erwartungswert aus PVGIS-Monatsdaten je Dachfläche. Tageswerte sind innerhalb des Monats modelliert.' }
     localStorage.setItem(key, JSON.stringify(data))
     return data
   } catch {
-    return { factors: { roof1: MONTHLY_FALLBACK, roof2: MONTHLY_FALLBACK }, source: 'fallback', loadedAt: new Date().toISOString(), note: 'PVGIS ist momentan nicht erreichbar. Die realistischen Werte sind eine deutlich gekennzeichnete monatliche Klimaschätzung.' }
+    return { factors: { factors: sides.map(() => MONTHLY_FALLBACK), roof1: MONTHLY_FALLBACK, roof2: MONTHLY_FALLBACK }, source: 'fallback', loadedAt: new Date().toISOString(), note: 'PVGIS ist momentan nicht erreichbar. Die realistischen Werte sind eine deutlich gekennzeichnete monatliche Klimaschätzung.' }
   }
 }
