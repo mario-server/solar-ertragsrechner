@@ -1,4 +1,4 @@
-import type { DayResult, PowerPoint, RoofSide, Settings, SolarPoint } from '../types'
+import type { DayResult, PowerPoint, RoofSide, Settings, SolarPoint, YearRow } from '../types'
 import { attachIrradiance, clearSkyIrradiance } from './irradiance'
 import { buildSolarPoints } from './solarPosition'
 
@@ -44,15 +44,26 @@ export function calculateDay(settings: Settings, date: string, realisticFactors?
   return { date, points, energy, peak: { ideal: idealPeak.totalIdeal, real: realPeak.totalReal, idealTime: idealPeak.timeLabel, realTime: realPeak.timeLabel } }
 }
 
-export function calculateYear(settings: Settings, year: number, realisticFactors?: { roof1?: number[]; roof2?: number[] }, onProgress?: (value: number) => void): { rows: import('../types').YearRow[]; clippingKwh: number } {
-  const rows: import('../types').YearRow[] = []
-  let clippingKwh = 0
-  const days = new Date(Date.UTC(year, 1, 29)).getUTCDate() === 29 ? 366 : 365
-  for (let day = 0; day < days; day += 1) {
+export function daysInYear(year: number) { return new Date(Date.UTC(year, 1, 29)).getUTCDate() === 29 ? 366 : 365 }
+
+export function calculateYearChunk(settings: Settings, year: number, realisticFactors: { roof1?: number[]; roof2?: number[] } | undefined, startDay: number, count: number): YearRow[] {
+  const rows: YearRow[] = []
+  const days = daysInYear(year)
+  for (let day = startDay; day < Math.min(days, startDay + count); day += 1) {
     const d = new Date(Date.UTC(year, 0, day + 1))
     const date = `${year}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`
     const result = calculateDay(settings, date, realisticFactors, 15)
     rows.push({ date, ...result.energy, peakIdeal: result.peak.ideal, peakReal: result.peak.real, peakTime: result.peak.realTime })
+  }
+  return rows
+}
+
+export function calculateYear(settings: Settings, year: number, realisticFactors?: { roof1?: number[]; roof2?: number[] }, onProgress?: (value: number) => void): { rows: YearRow[]; clippingKwh: number } {
+  const rows: YearRow[] = []
+  let clippingKwh = 0
+  const days = daysInYear(year)
+  for (let day = 0; day < days; day += 1) {
+    rows.push(...calculateYearChunk(settings, year, realisticFactors, day, 1))
     onProgress?.((day + 1) / days)
   }
   if (settings.inverterLimit) {

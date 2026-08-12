@@ -2,9 +2,19 @@ import type { SolarPoint } from '../types'
 
 const rad = Math.PI / 180
 const deg = 180 / Math.PI
+const formatterCache = new Map<string, Intl.DateTimeFormat>()
+
+function formatterFor(timezone: string) {
+  let formatter = formatterCache.get(timezone)
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' })
+    formatterCache.set(timezone, formatter)
+  }
+  return formatter
+}
 
 function partsFor(date: Date, timezone: string) {
-  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).formatToParts(date)
+  const parts = formatterFor(timezone).formatToParts(date)
   return Object.fromEntries(parts.filter((p) => p.type !== 'literal').map((p) => [p.type, Number(p.value)])) as Record<string, number>
 }
 
@@ -44,7 +54,13 @@ export function solarPosition(date: Date, latitude: number, longitude: number) {
 }
 
 export function formatTimeInZone(date: Date, timezone: string) {
-  return new Intl.DateTimeFormat('de-DE', { timeZone: timezone, hour: '2-digit', minute: '2-digit', hour12: false }).format(date)
+  const key = `display:${timezone}`
+  let formatter = formatterCache.get(key)
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat('de-DE', { timeZone: timezone, hour: '2-digit', minute: '2-digit', hour12: false })
+    formatterCache.set(key, formatter)
+  }
+  return formatter.format(date)
 }
 
 export function buildSolarPoints(date: string, latitude: number, longitude: number, timezone: string, stepMinutes = 5): SolarPoint[] {
