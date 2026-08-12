@@ -1,0 +1,7 @@
+node_modules
+dist
+.env
+.env.*
+upload.sh
+DEPLOYMENT-SECRETS.md
+.DS_Store
