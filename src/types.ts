@@ -33,35 +33,29 @@ export type SolarPoint = {
 }
 
 export type PowerPoint = SolarPoint & {
-  sideIdeal: number[]
   sideReal: number[]
-  roof1Ideal: number
   roof1Real: number
-  roof2Ideal: number
   roof2Real: number
-  totalIdeal: number
   totalReal: number
 }
 
 export type DayResult = {
   date: string
   points: PowerPoint[]
-  energy: { roof1Ideal: number; roof1Real: number; roof2Ideal: number; roof2Real: number; totalIdeal: number; totalReal: number }
-  sideEnergy: Array<{ ideal: number; real: number }>
-  peak: { ideal: number; real: number; idealTime: string; realTime: string }
+  energy: { roof1Real: number; roof2Real: number; totalReal: number }
+  sideEnergy: Array<{ real: number }>
+  clippingKwh: number
+  peak: { real: number; realTime: string }
 }
 
 export type YearRow = {
   date: string
-  roof1Ideal: number
   roof1Real: number
-  roof2Ideal: number
   roof2Real: number
-  totalIdeal: number
   totalReal: number
-  peakIdeal: number
   peakReal: number
   peakTime: string
+  clippingKwh: number
 }
 
 export function configuredRoofSides(settings: Settings): RoofSide[] {

@@ -14,7 +14,6 @@ export type ThresholdInsight = {
 
 export type SurfaceInsight = {
   index: number
-  ideal: number
   real: number
   share: number
 }
@@ -50,7 +49,6 @@ export function deriveDayInsights(day: DayResult, installedKwp: number) {
   return {
     bands,
     thresholds,
-    realShareOfIdeal: day.energy.totalIdeal ? day.energy.totalReal / day.energy.totalIdeal : 0,
     stepHours
   }
 }
@@ -58,8 +56,8 @@ export function deriveDayInsights(day: DayResult, installedKwp: number) {
 export function surfaceBreakdown(day: DayResult, activeIndexes: number[]): SurfaceInsight[] {
   const total = Math.max(0, day.energy.totalReal)
   return activeIndexes.map((index) => {
-    const value = day.sideEnergy[index] ?? { ideal: 0, real: 0 }
-    return { index, ideal: value.ideal, real: value.real, share: total ? value.real / total : 0 }
+    const value = day.sideEnergy[index] ?? { real: 0 }
+    return { index, real: value.real, share: total ? value.real / total : 0 }
   })
 }
 
@@ -68,7 +66,6 @@ export function monthlyBreakdown(rows: YearRow[]) {
   return labels.map((label, month) => rows.reduce((result, row) => {
     if (Number(row.date.slice(5, 7)) - 1 !== month) return result
     result.real += row.totalReal
-    result.ideal += row.totalIdeal
     return result
-  }, { month, label, real: 0, ideal: 0 }))
+  }, { month, label, real: 0 }))
 }
