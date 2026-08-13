@@ -4,8 +4,9 @@ import { configuredRoofSides, DEFAULT_SETTINGS } from './types'
 import { calculateDay, calculateYearChunk, daysInYear } from './lib/pvCalculation'
 import { directionName, oppositeAzimuth } from './lib/irradiance'
 import { loadWeatherData, type WeatherData } from './lib/weatherData'
+import { deriveDayInsights, monthlyBreakdown, surfaceBreakdown } from './lib/insights'
 
-type Page = 'overview' | 'day' | 'year' | 'settings'
+type Page = 'overview' | 'day' | 'insights' | 'year' | 'settings'
 const COLORS = { roof1: '#f2a93b', roof2: '#5cc8b0', total: '#f4f6f8', real: '#9aa8b4' }
 const today = () => new Date().toISOString().slice(0, 10)
 const n = (value: number, digits = 0) => new Intl.NumberFormat('de-DE', { maximumFractionDigits: digits, minimumFractionDigits: digits }).format(value)
@@ -37,7 +38,7 @@ function RoofBadge({ side, settings }: { side: RoofSide; settings: Settings }) {
 }
 
 function Header({ page, setPage, source, calculating }: { page: Page; setPage: (page: Page) => void; source: WeatherData['source']; calculating: boolean }) {
-  return <header className="topbar"><div className="brand"><span className="brand-mark">/\</span><div><strong>Solarertrag</strong><small>PV-Planung mit Sonnenmodell</small></div></div><nav>{(['overview', 'day', 'year', 'settings'] as Page[]).map((item) => <button key={item} className={page === item ? 'active' : ''} onClick={() => setPage(item)}>{item === 'overview' ? 'Übersicht' : item === 'day' ? 'Tag' : item === 'year' ? 'Jahr' : 'Anlage'}</button>)}</nav><span className={`data-status ${calculating ? 'status-calculating' : `status-${source}`}`}><i /> {calculating ? 'Berechnung läuft' : source === 'PVGIS' ? 'PVGIS verbunden' : 'Klimaschätzung'}</span></header>
+  return <header className="topbar"><div className="brand"><span className="brand-mark">/\</span><div><strong>Solarertrag</strong><small>PV-Planung mit Sonnenmodell</small></div></div><nav>{(['overview', 'day', 'insights', 'year', 'settings'] as Page[]).map((item) => <button key={item} className={page === item ? 'active' : ''} onClick={() => setPage(item)}>{item === 'overview' ? 'Übersicht' : item === 'day' ? 'Tag' : item === 'insights' ? 'Analyse' : item === 'year' ? 'Jahr' : 'Anlage'}</button>)}</nav><span className={`data-status ${calculating ? 'status-calculating' : `status-${source}`}`}><i /> {calculating ? 'Berechnung läuft' : source === 'PVGIS' ? 'PVGIS verbunden' : 'Klimaschätzung'}</span></header>
 }
 
 function SectionTitle({ eyebrow, title, action }: { eyebrow?: string; title: string; action?: React.ReactNode }) { return <div className="section-title">{eyebrow && <span>{eyebrow}</span>}<h2>{title}</h2>{action}</div> }
@@ -78,6 +79,60 @@ function DayPage({ settings, date, setDate, day, weatherSource }: { settings: Se
   const rows = day.points.map((p, index) => <tr key={p.timeLabel}><td>{p.timeLabel}</td><td>{n(p.elevation, 1)}°</td><td>{n(p.azimuth, 1)}°</td><td>{n(p.roof1Ideal * 1000, 0)} W</td><td>{n(p.roof1Real * 1000, 0)} W</td><td>{n(p.roof2Ideal * 1000, 0)} W</td><td>{n(p.roof2Real * 1000, 0)} W</td><td className="strong-cell">{n(p.totalIdeal * 1000, 0)} W</td><td className="strong-cell">{n(p.totalReal * 1000, 0)} W</td><td className="accumulated-cell">{n(accumulated[index], 3)} kWh</td>{showTechnical && <><td>{n(p.incidence, 1)}°</td><td>{n(p.irradiance.poa, 0)} W/m²</td></>}</tr>)
   const download = () => downloadCsv(`solar-tag-${date}.csv`, [['Uhrzeit', 'Sonnenhöhe', 'Sonnenazimut', 'Seite 1 ideal W', 'Seite 1 realistisch W', 'Seite 2 ideal W', 'Seite 2 realistisch W', 'Gesamt ideal W', 'Gesamt realistisch W', 'Gesamt realistisch aufgelaufen kWh'], ...day.points.map((p, index) => [p.timeLabel, p.elevation, p.azimuth, p.roof1Ideal * 1000, p.roof1Real * 1000, p.roof2Ideal * 1000, p.roof2Real * 1000, p.totalIdeal * 1000, p.totalReal * 1000, accumulated[index]])])
   return <main><div className="page-heading compact"><div><span className="eyebrow">Tagesanalyse</span><h1>Leistung im Tagesverlauf</h1><p>5-Minuten-Modell mit getrennten idealen und klimatisch realistischen Werten.</p></div><div className="date-control"><IconButton title="Vorheriger Tag" onClick={() => move(-1)}>←</IconButton><input type="date" value={date} onChange={(e) => setDate(e.target.value)} /><IconButton title="Nächster Tag" onClick={() => move(1)}>→</IconButton><button className="secondary" onClick={() => setDate(today())}>Heute</button></div></div><div className="metric-grid day-metrics"><Metric label="Gesamt ideal" value={kwh(day.energy.totalIdeal)} detail={`Peak ${kw(day.peak.ideal)} · ${day.peak.idealTime}`} accent="orange" /><Metric label="Gesamt realistisch" value={kwh(day.energy.totalReal)} detail={`Peak ${kw(day.peak.real)} · ${day.peak.realTime}`} accent="teal" /><Metric label="Aufgelaufen realistisch" value={kwhPrecise(day.energy.totalReal)} detail="über den gesamten Tag integriert" accent="teal" /><Metric label="Dachseite 1" value={kwh(day.energy.roof1Real)} detail={`Ideal ${kwh(day.energy.roof1Ideal)}`} accent="orange" /><Metric label="Dachseite 2" value={kwh(day.energy.roof2Real)} detail={`Ideal ${kwh(day.energy.roof2Ideal)}`} accent="teal" /></div><section className="panel large-chart"><div className="section-title"><div><span>Leistungsprofil · kW</span><h2>Die Kurven im direkten Vergleich</h2></div><div className="chart-toggles">{[['roof1Ideal', 'Seite 1 ideal'], ['roof2Ideal', 'Seite 2 ideal'], ['totalIdeal', 'Gesamt ideal'], ['roof1Real', 'Seite 1 realistisch'], ['roof2Real', 'Seite 2 realistisch'], ['totalReal', 'Gesamt realistisch']].map(([key, label]) => <button key={key} className={visible.includes(key) ? 'selected' : ''} onClick={() => toggle(key)}><i style={{ background: key.includes('roof1') ? COLORS.roof1 : key.includes('roof2') ? COLORS.roof2 : key.includes('Real') ? COLORS.real : COLORS.total }} />{label}</button>)}</div></div><LineChart points={chartPoints} keys={visible} labels={{ roof1Ideal: 'Seite 1 ideal', roof2Ideal: 'Seite 2 ideal', totalIdeal: 'Gesamt ideal', roof1Real: 'Seite 1 realistisch', roof2Real: 'Seite 2 realistisch', totalReal: 'Gesamt realistisch' }} height={330} /></section><section className="panel"><div className="table-head"><div><span className="eyebrow">Zeitreihe</span><h2>Alle Berechnungspunkte</h2></div><div className="table-actions"><label><input type="checkbox" checked={showTechnical} onChange={(e) => setShowTechnical(e.target.checked)} /> Technische Spalten</label><button className="secondary" onClick={download}>CSV exportieren</button></div></div><div className="scroll-table"><table><thead><tr><th>Uhrzeit</th><th>Sonnenhöhe</th><th>Sonnenazimut</th><th>S1 ideal W</th><th>S1 real W</th><th>S2 ideal W</th><th>S2 real W</th><th>Gesamt ideal W</th><th>Gesamt real W</th><th>Aufgelaufen real kWh</th>{showTechnical && <><th>Einfallswinkel</th><th>POA</th></>}</tr></thead><tbody>{rows}</tbody></table></div><small className="table-note">Datenquelle realistisch: {weatherSource === 'PVGIS' ? 'PVGIS / EU Joint Research Centre' : 'monatliche Klimaschätzung als Fallback'}. Intern werden Leistungen in kW gerechnet, hier für die Zeitreihe in W angezeigt. Die kumulierte Energie wird aus der realistischen Gesamtleistung integriert.</small></section></main>
+}
+
+function InsightsPage({ settings, day, rows, onNavigate }: { settings: Settings; day: DayResult; rows: YearRow[]; onNavigate: (page: Page) => void }) {
+  const sides = configuredRoofSides(settings)
+  const activeIndexes = sides.map((side, index) => side.active ? index : -1).filter((index) => index >= 0)
+  const totalKwp = activeIndexes.reduce((sum, index) => sum + sides[index].powerKwp, 0)
+  const insights = useMemo(() => deriveDayInsights(day, totalKwp), [day, totalKwp])
+  const surfaces = surfaceBreakdown(day, activeIndexes)
+  const months = monthlyBreakdown(rows)
+  const annualReal = rows.reduce((sum, row) => sum + row.totalReal, 0)
+  const annualIdeal = rows.reduce((sum, row) => sum + row.totalIdeal, 0)
+  const maxMonth = Math.max(1, ...months.map((month) => month.ideal))
+  const yearPoints = rows.filter((_, index) => index % Math.max(1, Math.ceil(rows.length / 180)) === 0).map((row) => ({ totalReal: row.totalReal, totalIdeal: row.totalIdeal }))
+  const surfaceColors = ['#f2a93b', '#5cc8b0', '#a98cff', '#e77f98', '#6ea8fe', '#c7d36f']
+  const selectedDate = new Date(`${day.date}T12:00:00`).toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: 'long' })
+
+  return <main>
+    <div className="page-heading compact">
+      <div><span className="eyebrow">Analyse · Vergleich</span><h1>Wie erzeugt deine Anlage Energie?</h1><p>Zusätzliche Muster und Vergleiche aus dem ausgewählten Tagesprofil und dem laufenden Ertragsjahr.</p></div>
+      <button className="primary" onClick={() => onNavigate('day')}>Tagesprofil öffnen</button>
+    </div>
+    <section className="insight-hero">
+      <div><span className="insight-kicker">Ausgewählter Tag · {selectedDate}</span><h2>Breite statt kurzer Spitze</h2><p>Die Verteilung zeigt, wann deine Flächen gemeinsam Leistung liefern. Ideal bleibt dabei klar vom klimatischen Erwartungswert getrennt.</p></div>
+      <div className="insight-stat-grid"><div className="insight-stat"><span>Realistisch / ideal</span><strong>{n(insights.realShareOfIdeal * 100, 0)} %</strong><small>klimatische Einordnung</small></div><div className="insight-stat"><span>Über 50 % Leistung</span><strong>{n(insights.thresholds[1].hours, 1)} h</strong><small>von {n(totalKwp, 1)} kWp</small></div><div className="insight-stat"><span>Tagespeak</span><strong>{kw(day.peak.real)}</strong><small>{day.peak.realTime} Uhr</small></div></div>
+    </section>
+    <div className="insight-grid">
+      <section className="panel insight-panel">
+        <SectionTitle eyebrow="Tagesrhythmus" title="Wann entsteht die Energie?" />
+        <div className="insight-bars">{insights.bands.map((band) => <div className="insight-bar-row" key={band.label}><div className="insight-bar-label"><strong>{band.label}</strong><span>{n(band.share * 100, 0)} % · {kwh(band.energy)}</span></div><div className="insight-bar-track"><i style={{ width: `${Math.max(0, Math.min(100, band.share * 100))}%` }} /></div></div>)}</div>
+        <small className="insight-note">Aufteilung der realistischen Tagesenergie in Zeitfenster. Die Energie wird aus den 5-Minuten-Leistungswerten integriert.</small>
+      </section>
+      <section className="panel insight-panel">
+        <SectionTitle eyebrow="Leistungsdauer" title="Wie lange wird Leistung erreicht?" />
+        <div className="threshold-list">{insights.thresholds.map((item) => <div className="threshold-row" key={item.threshold}><span>{item.threshold} %</span><div className="insight-bar-track"><i style={{ width: `${Math.max(0, Math.min(100, item.shareOfDay * 100))}%` }} /></div><strong>{n(item.hours, 1)} h</strong></div>)}</div>
+        <small className="insight-note">Zeitanteil der berechneten Tagespunkte über der jeweiligen Schwelle der aktiven Gesamtleistung.</small>
+      </section>
+      <section className="panel insight-panel">
+        <SectionTitle eyebrow="Flächenvergleich" title="Wer liefert den Tagesertrag?" />
+        <div className="surface-list">{surfaces.map((surface) => { const side = sides[surface.index]; return <div className="surface-row" key={side.id || surface.index}><div className="surface-row-title"><i className="surface-color" style={{ background: surfaceColors[surface.index % surfaceColors.length] }} /><strong>{side.name || `Dachfläche ${surface.index + 1}`}</strong><span>{n(side.powerKwp, 1)} kWp</span></div><div className="insight-bar-track"><i style={{ width: `${Math.max(0, Math.min(100, surface.share * 100))}%`, background: surfaceColors[surface.index % surfaceColors.length] }} /></div><div className="surface-row-values"><b>{kwh(surface.real)}</b><span>{n(surface.share * 100, 1)} % · ideal {kwh(surface.ideal)}</span></div></div> })}</div>
+        <small className="insight-note">Anteile beziehen sich auf den ausgewählten Tag und die realistische Berechnung.</small>
+      </section>
+      <section className="panel insight-panel">
+        <SectionTitle eyebrow="Jahresvergleich" title="Klimajahr gegen Klarhimmel" />
+        <div className="annual-compare"><div><span>Realistisch</span><strong>{kwh(annualReal)}</strong><i style={{ width: `${annualIdeal ? annualReal / annualIdeal * 100 : 0}%` }} /></div><div><span>Ideal</span><strong>{kwh(annualIdeal)}</strong><i style={{ width: '100%' }} /></div></div>
+        <div className="insight-month-grid">{months.map((month) => <div className="insight-month" key={month.label}><div className="insight-month-bars"><i style={{ height: `${month.real / maxMonth * 100}%` }} /><b style={{ height: `${month.ideal / maxMonth * 100}%` }} /></div><span>{month.label}</span><small>{n(month.real, 0)}</small></div>)}</div>
+        <div className="chart-legend"><span><i style={{ background: COLORS.roof2 }} /> Realistisch</span><span><i style={{ background: COLORS.roof1 }} /> Ideal</span></div>
+      </section>
+      <section className="panel insight-panel insight-wide">
+        <SectionTitle eyebrow="Jahreskurve" title="Wie verändert sich das Profil über die Monate?" action={<button className="link-button" onClick={() => onNavigate('year')}>Jahresdetails</button>} />
+        <LineChart points={yearPoints} keys={['totalIdeal', 'totalReal']} labels={{ totalIdeal: 'Gesamt ideal', totalReal: 'Gesamt realistisch' }} height={240} />
+        {rows.length < 365 && <small className="insight-note">Die Jahresberechnung läuft noch. Die Kurve wird mit den fertig berechneten Tagen aufgebaut.</small>}
+      </section>
+    </div>
+  </main>
 }
 
 function YearPage({ settings, rows, year, setYear, progress, clippingKwh, calculating }: { settings: Settings; rows: YearRow[]; year: number; setYear: (y: number) => void; progress: number; clippingKwh: number; calculating: boolean }) {
@@ -156,7 +211,7 @@ export default function App() {
   }, [settings])
   const day = useMemo(() => calculateDay(settings, date, weather.factors.factors.length ? weather.factors : undefined), [settings, date, weather])
   useEffect(() => {
-    if (page !== 'overview' && page !== 'year') return
+    if (page !== 'overview' && page !== 'insights' && page !== 'year') return
     let alive = true
     let cursor = 0
     const totalDays = daysInYear(year)
@@ -179,5 +234,5 @@ export default function App() {
   }, [settings, year, weather, page])
   const clippingKwh = useMemo(() => settings.inverterLimit ? yearRows.reduce((sum, row) => sum + Math.max(0, row.totalIdeal * 0.015), 0) : 0, [settings.inverterLimit, yearRows])
   const calculating = weatherLoading || yearCalculating
-  return <div className="app-shell"><Header page={page} setPage={setPage} source={weather.source} calculating={calculating} /><div className="main-shell">{page === 'overview' && <Overview settings={settings} day={day} yearRows={yearRows} onNavigate={setPage} />}{page === 'day' && <DayPage settings={settings} date={date} setDate={setDate} day={day} weatherSource={weather.source} />}{page === 'year' && <YearPage settings={settings} rows={yearRows} year={year} setYear={setYear} progress={progress} clippingKwh={clippingKwh} calculating={yearCalculating} />}{page === 'settings' && <SettingsPage settings={settings} setSettings={setSettings} />}</div><footer>Solarertrag · {settings.location} · Modellstand 2026 · Werte dienen der Planung und ersetzen keine Fachplanung.</footer></div>
+  return <div className="app-shell"><Header page={page} setPage={setPage} source={weather.source} calculating={calculating} /><div className="main-shell">{page === 'overview' && <Overview settings={settings} day={day} yearRows={yearRows} onNavigate={setPage} />}{page === 'day' && <DayPage settings={settings} date={date} setDate={setDate} day={day} weatherSource={weather.source} />}{page === 'insights' && <InsightsPage settings={settings} day={day} rows={yearRows} onNavigate={setPage} />}{page === 'year' && <YearPage settings={settings} rows={yearRows} year={year} setYear={setYear} progress={progress} clippingKwh={clippingKwh} calculating={yearCalculating} />}{page === 'settings' && <SettingsPage settings={settings} setSettings={setSettings} />}</div><footer>Solarertrag · {settings.location} · Modellstand 2026 · Werte dienen der Planung und ersetzen keine Fachplanung.</footer></div>
 }
