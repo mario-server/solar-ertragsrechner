@@ -34,7 +34,7 @@ export function calculateDay(settings: Settings, date: string, realisticFactors?
     const realClipped = clipMany(realValues, settings.inverterLimit)
     idealClipped.forEach((value, sideIndex) => { sideEnergy[sideIndex].ideal += value * hours })
     realClipped.forEach((value, sideIndex) => { sideEnergy[sideIndex].real += value * hours })
-    return { ...point, irradiance: irradiance[0]?.[i]?.irradiance ?? point.irradiance, incidence: irradiance[0]?.[i]?.incidence ?? 90, roof1Ideal: idealClipped[0] ?? 0, roof1Real: realClipped[0] ?? 0, roof2Ideal: idealClipped[1] ?? 0, roof2Real: realClipped[1] ?? 0, totalIdeal: idealClipped.reduce((sum, value) => sum + value, 0), totalReal: realClipped.reduce((sum, value) => sum + value, 0) }
+    return { ...point, irradiance: irradiance[0]?.[i]?.irradiance ?? point.irradiance, incidence: irradiance[0]?.[i]?.incidence ?? 90, sideIdeal: idealClipped, sideReal: realClipped, roof1Ideal: idealClipped[0] ?? 0, roof1Real: realClipped[0] ?? 0, roof2Ideal: idealClipped[1] ?? 0, roof2Real: realClipped[1] ?? 0, totalIdeal: idealClipped.reduce((sum, value) => sum + value, 0), totalReal: realClipped.reduce((sum, value) => sum + value, 0) }
   })
   const energy = { roof1Ideal: 0, roof1Real: 0, roof2Ideal: 0, roof2Real: 0, totalIdeal: 0, totalReal: 0 }
   points.forEach((p) => { energy.roof1Ideal += p.roof1Ideal * hours; energy.roof1Real += p.roof1Real * hours; energy.roof2Ideal += p.roof2Ideal * hours; energy.roof2Real += p.roof2Real * hours; energy.totalIdeal += p.totalIdeal * hours; energy.totalReal += p.totalReal * hours })

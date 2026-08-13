@@ -33,6 +33,8 @@ export type SolarPoint = {
 }
 
 export type PowerPoint = SolarPoint & {
+  sideIdeal: number[]
+  sideReal: number[]
   roof1Ideal: number
   roof1Real: number
   roof2Ideal: number
